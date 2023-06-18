@@ -10,22 +10,36 @@
  *     upload LittleFS data with ESP8266 LittleFS Data Upload:
  *     ESP32: https://github.com/lorol/arduino-esp32fs-plugin
  ******************************************************************************/
-#define GIF_FILENAME "/SmilingFaceWithSmilingEyes.gif"
 
 /*******************************************************************************
  * Start of Arduino_GFX setting
  ******************************************************************************/
 #include <Arduino_GFX_Library.h>
-#define GFX_BL DF_GFX_BL // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
+#define GFX_BL DF_GFX_BL
 Arduino_GFX *gfx = create_default_Arduino_GFX();
 /*******************************************************************************
  * End of Arduino_GFX setting
  ******************************************************************************/
 
 #include <LittleFS.h>
+static uint8_t gif_count = 0;
+static String gif_file_list[255];
+static uint8_t current_gif_idx = 0;
 
 #include "GifClass.h"
 static GifClass gifClass;
+
+#define BUTTON_PIN 41
+bool btn_press_handled = true;
+void IRAM_ATTR ISR()
+{
+  ++current_gif_idx;
+  if (current_gif_idx >= gif_count)
+  {
+    current_gif_idx = 0;
+  }
+  btn_press_handled = false;
+}
 
 void setup()
 {
@@ -56,11 +70,47 @@ void setup()
     gfx->println(F("ERROR: File System Mount Failed!"));
     exit(0);
   }
+
+  File root = LittleFS.open("/");
+  if (!root)
+  {
+    Serial.println("- failed to open directory");
+    return;
+  }
+  if (!root.isDirectory())
+  {
+    Serial.println(" - not a directory");
+    return;
+  }
+  Serial.println("Read path /");
+  File file = root.openNextFile();
+  while (file)
+  {
+    if (file.isDirectory())
+    {
+      Serial.print("DIR: ");
+      Serial.println(file.name());
+    }
+    else
+    {
+      Serial.print("FILE: ");
+      Serial.print(file.name());
+      Serial.print("\tSIZE: ");
+      Serial.println(file.size());
+      gif_file_list[gif_count] = "/";
+      gif_file_list[gif_count++] += file.name();
+    }
+    file = root.openNextFile();
+  }
+  file.close();
+
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  attachInterrupt(BUTTON_PIN, ISR, FALLING);
 }
 
 void loop()
 {
-  File gifFile = LittleFS.open(GIF_FILENAME, "r");
+  File gifFile = LittleFS.open(gif_file_list[current_gif_idx].c_str(), "r");
   if (!gifFile || gifFile.isDirectory())
   {
     Serial.println(F("ERROR: open gifFile Failed!"));
@@ -90,7 +140,7 @@ void loop()
         int32_t t_fstart, t_delay = 0, t_real_delay, delay_until;
         int32_t res = 1;
         int32_t duration = 0, remain = 0;
-        while (res > 0)
+        while ((res >= 0) && (btn_press_handled))
         {
           t_fstart = millis();
           t_delay = gif->gce.delay * 10;
@@ -99,6 +149,11 @@ void loop()
           {
             Serial.println(F("ERROR: gd_get_frame() failed!"));
             break;
+          }
+          else if (res == 0)
+          {
+            gifClass.gd_rewind(gif);
+            delay(1000);
           }
           else if (res > 0)
           {
@@ -117,6 +172,8 @@ void loop()
 
         gifClass.gd_close_gif(gif);
         free(buf);
+
+        btn_press_handled = true;
       }
     }
   }
