@@ -404,8 +404,8 @@ private:
         gd_Table *table = (gd_Table *)malloc(s);
         if (table)
         {
-            Serial.print(F("new_table() malloc: "));
-            Serial.println(s);
+            // Serial.print(F("new_table() malloc: "));
+            // Serial.println(s);
         }
         else
         {

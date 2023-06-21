@@ -16,11 +16,13 @@
  * Start of Arduino_GFX setting
  ******************************************************************************/
 #include <Arduino_GFX_Library.h>
-#define GFX_BL DF_GFX_BL // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
+#define GFX_BL DF_GFX_BL
 Arduino_GFX *gfx = create_default_Arduino_GFX();
 /*******************************************************************************
  * End of Arduino_GFX setting
  ******************************************************************************/
+
+#include "driver/ledc.h"
 
 #include <LittleFS.h>
 
@@ -46,8 +48,11 @@ void setup()
   gfx->fillScreen(BLACK);
 
 #ifdef GFX_BL
-  pinMode(GFX_BL, OUTPUT);
-  digitalWrite(GFX_BL, HIGH);
+//  pinMode(GFX_BL, OUTPUT);
+//  digitalWrite(GFX_BL, HIGH);
+  ledcSetup(0, 500, 8);
+  ledcAttachPin(GFX_BL, 0);
+  ledcWrite(0, 127);
 #endif
 
   if (!LittleFS.begin())
@@ -86,7 +91,7 @@ void loop()
         int16_t x = (gfx->width() - gif->width) / 2;
         int16_t y = (gfx->height() - gif->height) / 2;
 
-        Serial.println(F("GIF video start"));
+        // Serial.println(F("GIF video start"));
         int32_t t_fstart, t_delay = 0, t_real_delay, delay_until;
         int32_t res = 1;
         int32_t duration = 0, remain = 0;
