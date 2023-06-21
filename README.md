@@ -8,7 +8,7 @@ https://emojipedia.org/animated-noto-color-emoji/
 
 ```
 cd src
-find * -exec convert {} -background black -alpha remove ../out/{} \;
+find * -exec convert {} -background black -coalesce -alpha remove ../out/{} \;
 cd ../out
-find * -exec ffmpeg -y -i {} -vf "fps=8,scale=128:128:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=32[p];[s1][p]paletteuse=dither=bayer" ../out2/{} \;
+find * -exec ffmpeg -y -i {} -vf "fps=7,scale=128:128:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=32[p];[s1][p]paletteuse=dither=bayer" ../out2/{} \;
 ```
